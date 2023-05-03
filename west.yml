@@ -21,6 +21,8 @@ manifest:
   remotes:
     - name: upstream
       url-base: https://github.com/zephyrproject-rtos
+    - name: my_forks
+      url-base: https://github.com/jonmthomson/
 
   group-filter: [-babblesim]
 
@@ -100,6 +102,7 @@ manifest:
       groups:
         - hal
     - name: hal_nxp
+      remote: my_forks
       revision: 69d57af9ae499c07dd2348e9d4cf4c9f781486c9
       path: modules/hal/nxp
       groups:
