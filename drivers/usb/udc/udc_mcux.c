@@ -31,6 +31,8 @@
 #include <fsl_cache.h>
 #endif
 
+#include "udc_common.h"
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(udc_mcux, CONFIG_UDC_DRIVER_LOG_LEVEL);
 
@@ -83,9 +85,9 @@ static void udc_mcux_thread(const struct device *dev)
 {
 }
 
-// static int udc_mcux_driver_init(const struct device *dev)
-// {
-// 	struct udc_data *data = dev->data;
+static int udc_mcux_driver_init(const struct device *dev)
+{
+	struct udc_data *data = dev->data;
 // 	int err;
 
 // 	LOG_INF("Preinit");
@@ -98,7 +100,8 @@ static void udc_mcux_thread(const struct device *dev)
 // 			K_PRIO_COOP(8), 0, K_NO_WAIT);
 
 // 	k_thread_name_set(&drv_stack_data, "udc_mcux");
-// }
+    return 0;
+}
 
 static int udc_mcux_lock(const struct device *dev)
 {
