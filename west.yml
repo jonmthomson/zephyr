@@ -22,7 +22,7 @@ manifest:
     - name: upstream
       url-base: https://github.com/zephyrproject-rtos
     - name: my_forks
-      url-base: https://github.com/jonmthomson/
+      url-base: https://github.com/jonmthomson
 
   group-filter: [-babblesim]
 
