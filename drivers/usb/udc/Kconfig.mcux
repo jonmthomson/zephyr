@@ -34,10 +34,10 @@ if UDC_MCUX
 # 	  Maximum number of messages USB device controller interrupt can queue
 # 	  for callback thread
 
-# config UDC_MCUX_THREAD_STACK_SIZE
-# 	int "Stack size for the USB driver"
-# 	default 1024
-# 	help
-# 	  Size of the stack used for the internal USB thread.
+config UDC_MCUX_THREAD_STACK_SIZE
+	int "mcux UDC driver internal thread stack size"
+	default 512
+	help
+	  Size of the stack used in the driver for mcux USBD ISR event handling.
 
 endif # USB_MCUX

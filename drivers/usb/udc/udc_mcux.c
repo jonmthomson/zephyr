@@ -92,6 +92,11 @@ static void udc_mcux_thread(const struct device *dev)
 {
 }
 
+static int udc_mcux_init(const struct device *dev)
+{
+	return 0;
+}
+
 static int udc_mcux_driver_init(const struct device *dev)
 {
 	struct udc_data *data = dev->data;
@@ -150,9 +155,9 @@ static int udc_mcux_driver_init(const struct device *dev)
     }
 
 	data->caps.rwup = true;
-	data->caps.out_ack = true
+	data->caps.out_ack = true;
 	data->caps.mps0 = UDC_MCUX_MPS0;
-	
+
     return 0;
 }
 
@@ -184,7 +189,7 @@ static const struct udc_api udc_mcux_api = {
 	// .ep_dequeue = udc_mcux_ep_dequeue,
 	.lock = udc_mcux_lock,
 	.unlock = udc_mcux_unlock,
-	.init = NULL,
+	.init = udc_mcux_init,
 	.enable = NULL,
 	.disable = NULL,
 	.shutdown = NULL,
