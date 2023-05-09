@@ -36,8 +36,15 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(udc_mcux, CONFIG_UDC_DRIVER_LOG_LEVEL);
 
-// static K_KERNEL_STACK_DEFINE(drv_stack, CONFIG_UDC_MCUX_THREAD_STACK_SIZE);
-// static struct k_thread drv_stack_data;
+/*
+ * There is no real advantage to change control enpoint size
+ * but we can use it for testing UDC driver API and higher layers.
+ */
+#define UDC_MCUX_MPS0		UDC_MPS0_64
+#define UDC_MCUX_EP0_SIZE	64
+
+static K_KERNEL_STACK_DEFINE(drv_stack, CONFIG_UDC_MCUX_THREAD_STACK_SIZE);
+static struct k_thread drv_stack_data;
 
 /*
  * Endpoint absolute index calculation:
@@ -70,7 +77,7 @@ LOG_MODULE_REGISTER(udc_mcux, CONFIG_UDC_DRIVER_LOG_LEVEL);
 #define CFG_EPIN_CNT		DT_INST_PROP(0, num_bidir_endpoints)
 #define CFG_EPOUT_CNT		DT_INST_PROP(0, num_bidir_endpoints)
 
-static struct udc_ep_config ep_cfg_out[CFG_EPOUT_CNT + 1];
+static struct udc_ep_config ep_cfg_out[CFG_EPOUT_CNT + 1]; // + 1 to include the control EP
 static struct udc_ep_config ep_cfg_in[CFG_EPIN_CNT + 1];
 
 const static struct device *udc_mcux_dev;
@@ -88,18 +95,64 @@ static void udc_mcux_thread(const struct device *dev)
 static int udc_mcux_driver_init(const struct device *dev)
 {
 	struct udc_data *data = dev->data;
-// 	int err;
+	int err;
 
-// 	LOG_INF("Preinit");
-// 	udc_mcux_dev = dev;
-// 	k_mutex_init(&data->mutex);
-// 	k_thread_create(&drv_stack_data, drv_stack,
-// 			K_KERNEL_STACK_SIZEOF(drv_stack),
-// 			(k_thread_entry_t)udc_mcux_thread,
-// 			(void *)dev, NULL, NULL,
-// 			K_PRIO_COOP(8), 0, K_NO_WAIT);
+	LOG_INF("Preinit");
+	udc_mcux_dev = dev;
+	k_mutex_init(&data->mutex);
+	k_thread_create(&drv_stack_data, drv_stack,
+			K_KERNEL_STACK_SIZEOF(drv_stack),
+			(k_thread_entry_t)udc_mcux_thread,
+			(void *)dev, NULL, NULL,
+			K_PRIO_COOP(8), 0, K_NO_WAIT);
 
-// 	k_thread_name_set(&drv_stack_data, "udc_mcux");
+	k_thread_name_set(&drv_stack_data, "udc_mcux");
+
+    for (int i = 0; i < ARRAY_SIZE(ep_cfg_out); i++) {
+        ep_cfg_out[i].caps.out = 1;
+        if (i == 0) {
+            ep_cfg_out[i].caps.control = 1;
+            ep_cfg_out[i].caps.mps = USB_CONTROL_EP_MPS;
+        }
+		else {
+			ep_cfg_out[i].caps.bulk = 1;
+			ep_cfg_out[i].caps.interrupt = 1;
+			ep_cfg_out[i].caps.iso = 1;
+			ep_cfg_out[i].caps.mps = 1024U;
+        }
+
+		ep_cfg_out[i].addr = USB_EP_DIR_OUT | i;
+		err = udc_register_ep(dev, &ep_cfg_out[i]);
+		if (err != 0) {
+			LOG_ERR("Failed to register endpoint");
+			return err;
+		}
+    }
+
+    for (int i = 0; i < ARRAY_SIZE(ep_cfg_in); i++) {
+        ep_cfg_in[i].caps.in = 1;
+        if (i == 0) {
+            ep_cfg_in[i].caps.control = 1;
+			ep_cfg_in[i].caps.mps = USB_CONTROL_EP_MPS;
+        } else {
+			ep_cfg_in[i].caps.bulk = 1;
+			ep_cfg_in[i].caps.interrupt = 1;
+			ep_cfg_in[i].caps.iso = 1;
+			ep_cfg_in[i].caps.mps = 1024U;            
+        }
+
+		ep_cfg_in[i].addr = USB_EP_DIR_IN | i;
+		err = udc_register_ep(dev, &ep_cfg_in[i]);
+		if (err != 0) {
+			LOG_ERR("Failed to register endpoint");
+			return err;
+		}
+    }
+
+	data->caps.rwup = true;
+	data->caps.out_ack = true
+	data->caps.mps0 = UDC_MCUX_MPS0;
+	
     return 0;
 }
 
