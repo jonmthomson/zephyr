@@ -20,6 +20,9 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/usb/udc.h>
+#include "usb_device.h"
+#include "usb_device_config.h"
+#include "usb_device_dci.h"
 
 #ifdef CONFIG_USB_DC_NXP_EHCI
 #include "usb_device_ehci.h"
@@ -117,7 +120,7 @@ static int udc_mcux_enable(const struct device *dev)
 	return 0;
 }
 
-static in udc_mcux_disable(const struct device *dev)
+static int udc_mcux_disable(const struct device *dev)
 {
 	return 0;
 }
@@ -126,7 +129,7 @@ static int udc_mcux_init(const struct device *dev)
 {
 	struct udc_data *data = dev->data;
 	usb_device_struct_t *dev_state = &data->priv;
-
+	
 	dev_state->controllerInterface = &mcux_usb_iface;
 	
 	LOG_INF("Initialized");
