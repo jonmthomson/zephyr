@@ -128,8 +128,8 @@ static int udc_mcux_disable(const struct device *dev)
 static int udc_mcux_init(const struct device *dev)
 {
 	struct udc_data *data = dev->data;
-	usb_device_struct_t *dev_state = &data->priv;
-	
+	usb_device_struct_t *dev_state = data->priv;
+
 	dev_state->controllerInterface = &mcux_usb_iface;
 	
 	LOG_INF("Initialized");
