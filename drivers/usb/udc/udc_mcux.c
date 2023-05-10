@@ -82,6 +82,26 @@ static struct udc_ep_config ep_cfg_in[CFG_EPIN_CNT + 1];
 
 const static struct device *udc_mcux_dev;
 
+#if defined(CONFIG_USB_DC_NXP_EHCI)
+/* EHCI device driver interface */
+static const usb_device_controller_interface_struct_t mcux_usb_iface = {
+	USB_DeviceEhciInit, USB_DeviceEhciDeinit, USB_DeviceEhciSend,
+	USB_DeviceEhciRecv, USB_DeviceEhciCancel, USB_DeviceEhciControl
+};
+
+extern void USB_DeviceEhciIsrFunction(void *deviceHandle);
+
+#elif defined(CONFIG_USB_DC_NXP_LPCIP3511)
+/* LPCIP3511 device driver interface */
+static const usb_device_controller_interface_struct_t mcux_usb_iface = {
+	USB_DeviceLpc3511IpInit, USB_DeviceLpc3511IpDeinit, USB_DeviceLpc3511IpSend,
+	USB_DeviceLpc3511IpRecv, USB_DeviceLpc3511IpCancel, USB_DeviceLpc3511IpControl
+};
+
+extern void USB_DeviceLpcIp3511IsrFunction(void *deviceHandle);
+
+#endif
+
 struct udc_mcux_config {
 	// clock_control_subsys_t clock;
 	// nrfx_power_config_t pwr;
@@ -92,8 +112,42 @@ static void udc_mcux_thread(const struct device *dev)
 {
 }
 
+static int udc_mcux_enable(const struct device *dev)
+{
+	return 0;
+}
+
+static in udc_mcux_disable(const struct device *dev)
+{
+	return 0;
+}
+
 static int udc_mcux_init(const struct device *dev)
 {
+	struct udc_data *data = dev->data;
+	usb_device_struct_t *dev_state = &data->priv;
+
+	dev_state->controllerInterface = &mcux_usb_iface;
+	
+	LOG_INF("Initialized");
+
+	return 0;
+}
+
+static int udc_mcux_shutdown(const struct device *dev)
+{
+	LOG_INF("shutdown");
+
+	if (udc_ep_disable_internal(dev, USB_CONTROL_EP_OUT)) {
+		LOG_ERR("Failed to disable control endpoint");
+		return -EIO;
+	}
+
+	if (udc_ep_disable_internal(dev, USB_CONTROL_EP_IN)) {
+		LOG_ERR("Failed to disable control endpoint");
+		return -EIO;
+	}
+
 	return 0;
 }
 
@@ -191,8 +245,8 @@ static const struct udc_api udc_mcux_api = {
 	.unlock = udc_mcux_unlock,
 	.init = udc_mcux_init,
 	.enable = NULL,
-	.disable = NULL,
-	.shutdown = NULL,
+	.disable = udc_mcux_disable,
+	.shutdown = udc_mcux_shutdown,
 	.set_address = NULL,
 	.host_wakeup = NULL,
 	.ep_try_config = NULL,
@@ -222,9 +276,11 @@ static const struct udc_mcux_config udc_mcux_cfg = {
 // 	},
 };
 
+static usb_device_struct_t private_data; 
+
 static struct udc_data udc_mcux_data = {
 	.mutex = Z_MUTEX_INITIALIZER(udc_mcux_data.mutex),
-	.priv = NULL,
+	.priv = &private_data,
 };
 
 // https://docs.zephyrproject.org/latest/kernel/drivers/index.html#c.DEVICE_DT_INST_DEFINE
